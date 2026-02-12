@@ -17,3 +17,6 @@ Cargo.lock
 /graph-cetrality/target
 /FruitsUserHasset/target
 /sorted_unique_fruits/target
+/fig_priority_fruit_salad/target
+/pagerank_for_sports_data/target
+*/target
