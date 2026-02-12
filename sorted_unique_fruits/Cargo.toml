@@ -1,5 +1,5 @@
 [package]
-name = "set_fruits"
+name = "unique_fruits"
 version = "0.1.0"
 edition = "2024"
 

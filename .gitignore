@@ -15,3 +15,5 @@ Cargo.lock
 /target
 /example1/target
 /graph-cetrality/target
+/FruitsUserHasset/target
+/sorted_unique_fruits/target
