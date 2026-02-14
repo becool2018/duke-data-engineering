@@ -1,50 +1,14 @@
-pub const TWITTER_USERNAMES: [&str; 48] = [
-    "balckmattersus",
-    "bleepthepolice",
-    "jenn_abrams",
-    "leroyloveusa",
-    "missourinewsus",
-    "rightnpr",
-    "ten_gop",
-    "traceyhappymom",
-    "trayneshacole",
-    "leroyloveusa",
-    "traceyhappymom",
-    "traceyhappymon",
-    "ten_gop",
-    "ten_gop",
-    "jenn_abrams",
-    "leroyloveusa",
-    "leroyloveusa",
-    "ten_gop",
-    "traceyhappymom",
-    "trayneshacole",
-    "leroyloveusa",
-    "traceyhappymom",
-    "traceyhappymon",
-    "ten_gop",
-    "ten_gop",
-    "jenn_abrams",
-    "leroyloveusa",
-    "leroyloveusa",
-    "journalist1",
-    "journalist2",
-    "journalist3",
-    "journalist4",
-    "journalist5",
-    "journalist6",
-    "journalist7",
-    "journalist8",
-    "journalist9",
-    "journalist10",
-    "journalist1",
-    "journalist2",
-    "journalist3",
-    "journalist4",
-    "journalist5",
-    "journalist6",
-    "journalist7",
-    "journalist8",
-    "journalist9",
-    "journalist10",
-];
+/*
+This code defines a funciton called create_fruit_salad taht takes a mutable
+vector of strings as input and returns a new vector of strings that contains the same elements
+as the input vector, but in a randon order.
+ */
+
+use rand::seq::SliceRandom;
+use rand::thread_rng;
+
+pub fn create_fruit_salad(mut fruits: Vec<String>) -> Vec<String> {
+    let mut rng = thread_rng();
+    fruits.shuffle(&mut rng);
+    fruits
+}

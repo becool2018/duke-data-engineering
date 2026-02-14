@@ -1,203 +1,54 @@
-use std::collections::{BTreeMap, HashMap, LinkedList};
-use std::env;
-use std::fs;
-use std::time::{Duration, Instant};
+/*
+  Usage: cargo run -- fruits.csv
+  or
+  cargo run -- --fruits "apple, pear"
+*/
 
-#[derive(Clone, Copy, Debug)]
-enum MapKind {
-    Hash,
-    BTree,
-    Vec,
-    List,
+use clap::Parser;
+use fruit_salad_maker::create_fruit_salad;
+
+#[derive(Parser, Debug)]
+#[clap(
+    name = "Fruit Salad Maker",
+    version = "0.1.0",
+    author = "Duke Data Engineering",
+    about = "Creates a random fruit salad from a list of fruits"
+)]
+
+struct Ops {
+    /// Fruits input as a string of comma separated values
+    #[clap(short, long)]
+    fruits: Option<String>,
+    csvfile: Option<String>,
 }
 
-impl MapKind {
-    fn from_arg(arg: &str) -> Option<Self> {
-        match arg {
-            "hash" => Some(Self::Hash),
-            "btree" => Some(Self::BTree),
-            "vec" => Some(Self::Vec),
-            "list" => Some(Self::List),
-            _ => None,
-        }
+fn csv_to_vec(csv: &str) -> Vec<String> {
+    csv.split(',').map(|s| s.trim().to_string()).collect()
+}
+fn display_fruit_salad(fruit_salad: Vec<String>) {
+    println!("Your fruit salad contains:");
+    for fruit in fruit_salad {
+        println!("- {}", fruit);
     }
 }
 
-fn parse_map_kind() -> MapKind {
-    for arg in env::args().skip(1) {
-        if let Some(value) = arg.strip_prefix("--map=") {
-            if let Some(kind) = MapKind::from_arg(value) {
-                return kind;
-            }
+fn main() {
+    let opts = Ops::parse();
+
+    // Use fruits from CSV file or command-line argument
+    let fruit_list = match opts.csvfile {
+        Some(filename) => {
+            let fruits = std::fs::read_to_string(filename).expect("Failed to read CSV file");
+            csv_to_vec(&fruits)
         }
-    }
-    MapKind::Hash
-}
-
-struct BenchResult {
-    insert: Duration,
-    lookup: Duration,
-    hits: usize,
-    items: Vec<(String, usize)>,
-}
-
-fn main() -> std::io::Result<()> {
-    // Read the entire input file into a single string.
-    let text = fs::read_to_string("./tenkwords.txt")?;
-    // Pre-normalize words so timing focuses on HashMap operations.
-    let words: Vec<String> = text
-        .split_whitespace()
-        .map(|word| word.to_lowercase())
-        .collect();
-
-    let map_kind = parse_map_kind();
-    let result = match map_kind {
-        MapKind::Hash => bench_hashmap(&words),
-        MapKind::BTree => bench_btreemap(&words),
-        MapKind::Vec => bench_vec(&words),
-        MapKind::List => bench_list(&words),
+        None => opts
+            .fruits
+            .unwrap_or_default()
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect(),
     };
 
-    println!("map: {:?}", map_kind);
-    println!("insert: {:?}", result.insert);
-    println!("lookup: {:?}", result.lookup);
-    println!("hits: {}", result.hits);
-
-    // Print word frequencies, sorted by count desc then word asc.
-    let mut items = result.items;
-    items.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-    for (word, count) in items {
-        println!("{word}: {count}");
-    }
-
-    Ok(())
-}
-
-fn bench_hashmap(words: &[String]) -> BenchResult {
-    let mut counts: HashMap<String, usize> = HashMap::new();
-    let insert_start = Instant::now();
-    for word in words {
-        *counts.entry(word.clone()).or_insert(0) += 1;
-    }
-    let insert = insert_start.elapsed();
-
-    let lookup_start = Instant::now();
-    let mut hits = 0usize;
-    for word in words {
-        if let Some(count) = counts.get(word) {
-            hits += *count;
-        }
-    }
-    let lookup = lookup_start.elapsed();
-
-    let items = counts
-        .iter()
-        .map(|(word, count)| (word.clone(), *count))
-        .collect();
-
-    BenchResult {
-        insert,
-        lookup,
-        hits,
-        items,
-    }
-}
-
-fn bench_btreemap(words: &[String]) -> BenchResult {
-    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
-    let insert_start = Instant::now();
-    for word in words {
-        *counts.entry(word.clone()).or_insert(0) += 1;
-    }
-    let insert = insert_start.elapsed();
-
-    let lookup_start = Instant::now();
-    let mut hits = 0usize;
-    for word in words {
-        if let Some(count) = counts.get(word) {
-            hits += *count;
-        }
-    }
-    let lookup = lookup_start.elapsed();
-
-    let items = counts
-        .iter()
-        .map(|(word, count)| (word.clone(), *count))
-        .collect();
-
-    BenchResult {
-        insert,
-        lookup,
-        hits,
-        items,
-    }
-}
-
-fn bench_vec(words: &[String]) -> BenchResult {
-    let mut counts: Vec<(String, usize)> = Vec::new();
-    let insert_start = Instant::now();
-    for word in words {
-        if let Some((_, count)) = counts.iter_mut().find(|(w, _)| w == word) {
-            *count += 1;
-        } else {
-            counts.push((word.clone(), 1));
-        }
-    }
-    let insert = insert_start.elapsed();
-
-    let lookup_start = Instant::now();
-    let mut hits = 0usize;
-    for word in words {
-        if let Some((_, count)) = counts.iter().find(|(w, _)| w == word) {
-            hits += *count;
-        }
-    }
-    let lookup = lookup_start.elapsed();
-
-    BenchResult {
-        insert,
-        lookup,
-        hits,
-        items: counts,
-    }
-}
-
-fn bench_list(words: &[String]) -> BenchResult {
-    let mut counts: LinkedList<(String, usize)> = LinkedList::new();
-    let insert_start = Instant::now();
-    for word in words {
-        let mut found = false;
-        for (existing, count) in counts.iter_mut() {
-            if existing == word {
-                *count += 1;
-                found = true;
-                break;
-            }
-        }
-        if !found {
-            counts.push_back((word.clone(), 1));
-        }
-    }
-    let insert = insert_start.elapsed();
-
-    let lookup_start = Instant::now();
-    let mut hits = 0usize;
-    for word in words {
-        if let Some((_, count)) = counts.iter().find(|(w, _)| w == word) {
-            hits += *count;
-        }
-    }
-    let lookup = lookup_start.elapsed();
-
-    let items = counts
-        .iter()
-        .map(|(word, count)| (word.clone(), *count))
-        .collect();
-
-    BenchResult {
-        insert,
-        lookup,
-        hits,
-        items,
-    }
+    let fruit_salad = create_fruit_salad(fruit_list);
+    display_fruit_salad(fruit_salad);
 }
