@@ -19,6 +19,8 @@ struct Ops {
     /// Fruits input as a string of comma separated values
     #[clap(short, long)]
     fruits: Option<String>,
+    #[clap(short, long)]
+    dressing: Option<String>,
     csvfile: Option<String>,
 }
 
@@ -36,17 +38,26 @@ fn main() {
     let opts = Ops::parse();
 
     // Use fruits from CSV file or command-line argument
-    let fruit_list = match opts.csvfile {
-        Some(filename) => {
+    let fruit_list = match (&opts.csvfile, &opts.dressing) {
+        (Some(filename), Some(dressing)) => {
+            println!("Using file: {}, dressing: {}", filename, dressing);
             let fruits = std::fs::read_to_string(filename).expect("Failed to read CSV file");
             csv_to_vec(&fruits)
         }
-        None => opts
-            .fruits
-            .unwrap_or_default()
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .collect(),
+        (Some(filename), None) => {
+            let fruits = std::fs::read_to_string(filename).expect("Failed to read CSV file");
+            csv_to_vec(&fruits)
+        }
+        (None, dressing_opt) => {
+            if let Some(d) = dressing_opt {
+                println!("Dressing: {}", d);
+            }
+            opts.fruits
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect()
+        }
     };
 
     let fruit_salad = create_fruit_salad(fruit_list);
