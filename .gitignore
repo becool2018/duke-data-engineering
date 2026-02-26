@@ -20,3 +20,4 @@ Cargo.lock
 /fig_priority_fruit_salad/target
 /pagerank_for_sports_data/target
 */target
+/.DS_Store
